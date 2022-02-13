@@ -18,6 +18,8 @@ public class Bot {
 
     private final Random random;
     private GameState gameState;
+    private Car myCar;
+    private Car opponentCar;
 
     private final static Command ACCELERATE = new AccelerateCommand();
     private final static Command LIZARD = new LizardCommand();
@@ -32,36 +34,36 @@ public class Bot {
     public Bot(GameState gameState) {
         this.random = new SecureRandom();
         this.gameState = gameState;
+        this.myCar = gameState.player;
+        this.opponentCar = gameState.opponent;
         directionList.add(TURN_LEFT);
         directionList.add(TURN_RIGHT);
     }
 
-    public Command run(GameState gameState) {
+    public Command run() {
+
         // Getting information
         List<Object> blocksAhead = getBlocksInFront(myCar.position.lane, myCar.position.block, gameState);
         List<Object> nextBlock = blocksAhead.subList(0,1);
-
-        Car myCar = gameState.player;
-        Car opponentCar = gameState.opponent;
 
         // Declaring player car status
         int currentSpeed = myCar.speed;
         int currentDamage = myCar.damage;
 
         // Side lane detection system (if the car is within lane 1 or 4)
-        if (myCar.position == 1) {
+        if (myCar.position.lane == 1) {
             return TURN_RIGHT;
         }
 
-        if (myCar.position == 4) {
+        if (myCar.position.lane == 4) {
             return TURN_LEFT;
         }
         
         //Basic avoidance logic
-        findClearLane(myCar, gameState);
+        findClearLane(myCar);
 
         // Tries to find the nearest power ups
-        findPowerUps(myCar, gameState);
+        findPowerUps(myCar);
 
         //Basic fix logic
         
@@ -169,7 +171,7 @@ public class Bot {
         return false;
     }
 
-    private Command findPowerUps(Car myCar, GameState gameState) {
+    private Command findPowerUps(Car myCar) {
         int i;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
@@ -260,9 +262,9 @@ public class Bot {
         int myPosBlock = myCar.position.block;
         int firstLeftObstacle = 0;
         int firstRightObstacle = 0;
-        List<Object> leftLane = getInfoinLaneBased(myPosLane, myPosBlock, gameState, 0);
-        List<Object> sameLane = getInfoinLaneBased(myPosLane, myPosBlock, gameState, 1);
-        List<Object> rightLane = getInfoinLaneBased(myPosLane, myPosBlock, gameState, 2);
+        List<Object> leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
+        List<Object> sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
+        List<Object> rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
         List<Lane[]> map = gameState.lanes;
         int startBlock = map.get(0)[0].position.block;
         
@@ -356,37 +358,6 @@ public class Bot {
                 blocks.add(laneList[i].terrain);
     
             }
-        }
-        return blocks;
-    }
-
-    private List<Object> getInfoinLaneNonBased(int block, int whichLane) {
-        // Fungsi ini cuman bakal ambil lane yang diminta
-        List<Lane[]> map = gameState.lanes; // lanes is the WORLD MAP
-        List<Object> blocks = new ArrayList<>();
-        int startBlock = map.get(0)[0].position.block;
-
-        /*
-        whichLane = 0 -> left lane
-        whichLane = 1 -> current lane
-        whichLane = 2 -> right lane */
-        if (whichLane == 1) {   
-            Lane[] laneList = map.get(0);
-        } else if (whichLane == 2) {
-            Lane[] laneList = map.get(1);
-        } else if (whichLane == 3) {
-            Lane[] laneList = map.get(2);
-        } else if (whichLane == 4) {
-            Lane[] laneList = map.get(3);
-        }
-        
-        for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
-            if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
-                break;
-            }
-
-            blocks.add(laneList[i].terrain);
-
         }
         return blocks;
     }
