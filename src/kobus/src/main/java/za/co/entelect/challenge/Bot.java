@@ -16,6 +16,7 @@ public class Bot {
 
     private static final int maxSpeed = 9;
 
+    private Random random;
     private GameState gameState;
     private Car myCar;
     private Car opponentCar;
@@ -29,7 +30,8 @@ public class Bot {
     private final static Command TURN_RIGHT = new ChangeLaneCommand(1);
     private final static Command TURN_LEFT = new ChangeLaneCommand(-1);
 
-    public Bot(GameState gameState) {
+    public Bot(Random random, GameState gameState) {
+        this.random = random;
         this.gameState = gameState;
         this.myCar = gameState.player;
         this.opponentCar = gameState.opponent;
@@ -75,7 +77,7 @@ public class Bot {
             
 
         // Tries to find the nearest power ups
-        if (myCar.powerups.length < 10) {
+        if (myCar.powerups.length < 6) {
             Command ordersPower = findPowerUps(myCar);
             return ordersPower;
         }
@@ -215,7 +217,7 @@ public class Bot {
         // Iterating each lane to find the closest index
         // Iterate lane 1
         if ((leftLane.contains(Terrain.BOOST)) || (leftLane.contains(Terrain.EMP)) || (leftLane.contains(Terrain.LIZARD)) || (leftLane.contains(Terrain.OIL_POWER)) || (leftLane.contains(Terrain.TWEET))) {
-            for (i = max(myPosBlock - startBlock, 0); i < (leftLane.size() - myPosBlock); i++) {
+            for (i = 0; i < leftLane.size(); i++) {
                 if ((leftLane.get(i) == Terrain.BOOST) || (leftLane.get(i) == Terrain.EMP) || (leftLane.get(i) == Terrain.LIZARD) || (leftLane.get(i) == Terrain.OIL_POWER) || (leftLane.get(i) == Terrain.TWEET)) {
                     leftLanePowerUps = i;
                     lanePowerUps.add(leftLanePowerUps);
@@ -225,7 +227,7 @@ public class Bot {
         }
 
         if ((sameLane.contains(Terrain.BOOST)) || (sameLane.contains(Terrain.EMP)) || (sameLane.contains(Terrain.LIZARD)) || (sameLane.contains(Terrain.OIL_POWER)) || (sameLane.contains(Terrain.TWEET))) {
-            for (i = max(myPosBlock - startBlock, 0); i < (sameLane.size() - myPosBlock); i++) {
+            for (i = 0; i < sameLane.size(); i++) {
                 if ((sameLane.get(i) == Terrain.BOOST) || (sameLane.get(i) == Terrain.EMP) || (sameLane.get(i) == Terrain.LIZARD) || (sameLane.get(i) == Terrain.OIL_POWER) || (sameLane.get(i) == Terrain.TWEET)) {
                     sameLanePowerUps = i;
                     lanePowerUps.add(sameLanePowerUps);
@@ -235,7 +237,7 @@ public class Bot {
         }
 
         if ((rightLane.contains(Terrain.BOOST)) || (rightLane.contains(Terrain.EMP)) || (rightLane.contains(Terrain.LIZARD)) || (rightLane.contains(Terrain.OIL_POWER)) || (rightLane.contains(Terrain.TWEET))) {
-            for (i = max(myPosBlock - startBlock, 0); i < (rightLane.size() - myPosBlock); i++) {
+            for (i = 0; i < rightLane.size(); i++) {
                 if ((rightLane.get(i) == Terrain.BOOST) || (rightLane.get(i) == Terrain.EMP) || (rightLane.get(i) == Terrain.LIZARD) || (rightLane.get(i) == Terrain.OIL_POWER) || (rightLane.get(i) == Terrain.TWEET)) {
                     rightLanePowerUps = i;
                     lanePowerUps.add(rightLanePowerUps);
@@ -263,7 +265,7 @@ public class Bot {
     }
 
     private Command findClearLane(Car myCar) {
-        int i;
+        int i, j;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
         int firstLeftObstacle = 0;
@@ -287,28 +289,56 @@ public class Bot {
         }
 
         if (myPosLane == 1) {
-            return TURN_RIGHT;
+            if ((rightLane.contains(Terrain.WALL)) || (rightLane.contains(Terrain.MUD)) || (rightLane.contains(Terrain.OIL_SPILL))) {
+                if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
+                    return LIZARD;
+                } else {
+                    return TURN_RIGHT;
+                }
+            }
         } else if (myPosLane == 4) {
-            return TURN_LEFT;
+            if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL))) {
+                if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
+                    return LIZARD;
+                } else {
+                    return TURN_RIGHT;
+                }
+            }
         } else {
-            for (i = max(myPosBlock - startBlock, 0); i < (leftLane.size() - myPosBlock); i++) {
+            for (i = 0; i < leftLane.size(); i++) {
                 if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL)) {
                     firstLeftObstacle = i;
                     break;
                 }
             }
 
-            for (i = max(myPosBlock - startBlock, 0);i < (rightLane.size() - myPosBlock);i++) {
+            for (i = 0;i < rightLane.size(); i++) {
                 if ((rightLane.get(i) == Terrain.WALL) || (rightLane.get(i) == Terrain.MUD) || (rightLane.get(i) == Terrain.OIL_SPILL)) {
                     firstRightObstacle = i;
                     break;
                 }
             }
 
-            if (firstLeftObstacle < firstRightObstacle) {
-                return TURN_RIGHT;
-            } else if (firstLeftObstacle > firstRightObstacle) {
-                return TURN_LEFT;
+            if ((firstLeftObstacle < firstRightObstacle) && (firstLeftObstacle != 0)) {
+                if (firstLeftObstacle == 0) {
+                    return TURN_LEFT;
+                } else {
+                    return TURN_RIGHT;
+                }
+                
+            } else if ((firstLeftObstacle > firstRightObstacle) && (firstRightObstacle != 0)) {
+                if (firstRightObstacle == 0) {
+                    return TURN_RIGHT;
+                } else {
+                    return TURN_LEFT;
+                }
+            } else if ((firstLeftObstacle == 0) && (firstRightObstacle == 0)) {
+                j = random.nextInt(2);
+                if (j == 1) {
+                    return TURN_LEFT;
+                } else if (j == 2) {
+                    return TURN_RIGHT;
+                }
             } else if (firstLeftObstacle == firstRightObstacle) {
                 if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
                     return LIZARD;
