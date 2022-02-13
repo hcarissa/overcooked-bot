@@ -17,6 +17,7 @@ public class Bot {
     private List<Command> directionList = new ArrayList<>();
 
     private final Random random;
+    private GameState gameState;
 
     private final static Command ACCELERATE = new AccelerateCommand();
     private final static Command LIZARD = new LizardCommand();
@@ -28,8 +29,9 @@ public class Bot {
     private final static Command TURN_RIGHT = new ChangeLaneCommand(1);
     private final static Command TURN_LEFT = new ChangeLaneCommand(-1);
 
-    public Bot() {
+    public Bot(GameState gameState) {
         this.random = new SecureRandom();
+        this.gameState = gameState;
         directionList.add(TURN_LEFT);
         directionList.add(TURN_RIGHT);
     }
@@ -176,8 +178,8 @@ public class Bot {
         int laneTwoPowerUps = 0;
         int laneThreePowerUps = 0;
         int laneFourPowerUps = 0;
-        int closestPowerUps = 0;
-        List<Integer> lanePowerUps = new ArrayList<Integer>();
+        
+        
         List<Object> laneOne = getInfoinLane(myPosLane, myPosBlock, gameState, 1);
         List<Object> laneTwo = getInfoinLane(myPosLane, myPosBlock, gameState, 2);
         List<Object> laneThree = getInfoinLane(myPosLane, myPosBlock, gameState, 3);
@@ -186,9 +188,11 @@ public class Bot {
         int leftLanePowerUps = 0;
         int sameLanePowerUps = 0;
         int rightLanePowerUps = 0;
-        List<Object> leftLane = getInfoinLaneBased(myPosLane, myPosBlock, gameState, 0);
-        List<Object> sameLane = getInfoinLaneBased(myPosLane, myPosBlock, gameState, 1);
-        List<Object> rightLane = getInfoinLaneBased(myPosLane, myPosBlock, gameState, 2);
+        int closestPowerUps = 0;
+        List<Integer> lanePowerUps = new ArrayList<Integer>();
+        List<Object> leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
+        List<Object> sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
+        List<Object> rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
         List<Lane[]> map = gameState.lanes;
         int startBlock = map.get(0)[0].position.block;
 
@@ -250,7 +254,7 @@ public class Bot {
         return ACCELERATE;
     }
 
-    private Command findClearLane(Car myCar, GameState gameState) {
+    private Command findClearLane(Car myCar) {
         int i;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
@@ -264,20 +268,20 @@ public class Bot {
         
         if ((sameLane.contains(Terrain.WALL)) || (sameLane.contains(Terrain.MUD)) || (sameLane.contains(Terrain.OIL_SPILL))) {
             // Check lanes first
-            if (myPos == 1) {
+            if (myPosLane == 1) {
                 return TURN_RIGHT;
-            } else if (myPos == 4) {
+            } else if (myPosLane == 4) {
                 return TURN_LEFT;
             } else {
                 for (i = max(myPosBlock - startBlock, 0); i < (leftLane.size() - myPosBlock); i++) {
-                    if (leftLane.get(i) == Terrain.WALL) {
+                    if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL)) {
                         firstLeftObstacle = i;
                         break;
                     }
                 }
 
                 for (i = max(myPosBlock - startBlock, 0);i < (rightLane.size() - myPosBlock);i++) {
-                    if (rightLane.get(i) == Terrain.WALL) {
+                    if ((rightLane.get(i) == Terrain.WALL) || (rightLane.get(i) == Terrain.MUD) || (rightLane.get(i) == Terrain.OIL_SPILL)) {
                         firstRightObstacle = i;
                         break;
                     }
@@ -314,7 +318,7 @@ public class Bot {
         return blocks;
     }
 
-    private List<Object> getInfoinLaneBased(int lane, int block, GameState gameState, int whichLane) {
+    private List<Object> getInfoinLaneBased(int lane, int block, int whichLane) {
         // Fungsi ini cuman bakal ambil lane yang diminta
         List<Lane[]> map = gameState.lanes; // lanes is the WORLD MAP
         List<Object> blocks = new ArrayList<>();
@@ -326,24 +330,37 @@ public class Bot {
         whichLane = 2 -> right lane */
         if (whichLane == 0) {   
             Lane[] laneList = map.get(lane - 2);
-        } else if (whichLane == 1) {
-            Lane[] laneList = map.get(lane - 1);
-        } else if (whichLane == 2) {
-            Lane[] laneList = map.get(lane);
-        }
-        
-        for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
-            if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
-                break;
+            for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
+                if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
+                    break;
+                }
+                blocks.add(laneList[i].terrain);
+    
             }
 
-            blocks.add(laneList[i].terrain);
-
+        } else if (whichLane == 1) {
+            Lane[] laneList = map.get(lane - 1);
+            for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
+                if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
+                    break;
+                }
+                blocks.add(laneList[i].terrain);
+    
+            }
+        } else if (whichLane == 2) {
+            Lane[] laneList = map.get(lane);
+            for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
+                if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
+                    break;
+                }
+                blocks.add(laneList[i].terrain);
+    
+            }
         }
         return blocks;
     }
 
-    private List<Object> getInfoinLaneNonBased(int block, GameState gameState, int whichLane) {
+    private List<Object> getInfoinLaneNonBased(int block, int whichLane) {
         // Fungsi ini cuman bakal ambil lane yang diminta
         List<Lane[]> map = gameState.lanes; // lanes is the WORLD MAP
         List<Object> blocks = new ArrayList<>();
