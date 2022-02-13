@@ -77,10 +77,11 @@ public class Bot {
             
 
         // Tries to find the nearest power ups
+        /*
         if (myCar.powerups.length < 6) {
             Command ordersPower = findPowerUps(myCar);
             return ordersPower;
-        }
+        } */
         
         // Tweet usage
         // Aggresive algorithm
@@ -210,9 +211,6 @@ public class Bot {
             sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
         }
-        
-        List<Lane[]> map = gameState.lanes;
-        int startBlock = map.get(0)[0].position.block;
 
         // Iterating each lane to find the closest index
         // Iterate lane 1
@@ -270,8 +268,6 @@ public class Bot {
         int myPosBlock = myCar.position.block;
         int firstLeftObstacle = 0;
         int firstRightObstacle = 0;
-        List<Lane[]> map = gameState.lanes;
-        int startBlock = map.get(0)[0].position.block;
         
         //List<Object> sameLane = new ArrayList<Object>();
         List<Object> rightLane = new ArrayList<Object>();
@@ -290,20 +286,32 @@ public class Bot {
 
         if (myPosLane == 1) {
             if ((rightLane.contains(Terrain.WALL)) || (rightLane.contains(Terrain.MUD)) || (rightLane.contains(Terrain.OIL_SPILL))) {
-                if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
+                if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (myCar.speed != 0)) {
                     return LIZARD;
                 } else {
-                    return TURN_RIGHT;
+                    j = random.nextInt(2);
+                    if (j == 1) {
+                        return ACCELERATE;
+                    } else if (j == 2) {
+                        return TURN_RIGHT;
+                    }
                 }
             }
+            return TURN_RIGHT;
         } else if (myPosLane == 4) {
             if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL))) {
-                if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
+                if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (myCar.speed != 0)){
                     return LIZARD;
                 } else {
-                    return TURN_RIGHT;
+                    j = random.nextInt(2);
+                    if (j == 1) {
+                        return ACCELERATE;
+                    } else if (j == 2) {
+                        return TURN_LEFT;
+                    }
                 }
             }
+            return TURN_LEFT;
         } else {
             for (i = 0; i < leftLane.size(); i++) {
                 if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL)) {
@@ -319,19 +327,14 @@ public class Bot {
                 }
             }
 
-            if ((firstLeftObstacle < firstRightObstacle) && (firstLeftObstacle != 0)) {
-                if (firstLeftObstacle == 0) {
-                    return TURN_LEFT;
-                } else {
-                    return TURN_RIGHT;
-                }
-                
-            } else if ((firstLeftObstacle > firstRightObstacle) && (firstRightObstacle != 0)) {
-                if (firstRightObstacle == 0) {
-                    return TURN_RIGHT;
-                } else {
-                    return TURN_LEFT;
-                }
+            if ((firstLeftObstacle == 0) || (firstRightObstacle != 0)) {
+                return TURN_LEFT;
+            } else if ((firstLeftObstacle != 0) || (firstRightObstacle == 0)) {
+                return TURN_RIGHT;
+            } else if (firstLeftObstacle < firstRightObstacle) {
+                return TURN_RIGHT;
+            } else if (firstLeftObstacle > firstRightObstacle) {
+                return TURN_LEFT;
             } else if ((firstLeftObstacle == 0) && (firstRightObstacle == 0)) {
                 j = random.nextInt(2);
                 if (j == 1) {
