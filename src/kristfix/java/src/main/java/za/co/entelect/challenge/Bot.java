@@ -88,10 +88,10 @@ public class Bot {
             if (hasPowerUp(PowerUps.BOOST, myCar.powerups)) {
                 return BOOST;
             }
-            // if (myCar.powerups.length < 6) {
-            //     Command cmd = findPowerUps(myCar);
-            //     return cmd;
-            // }
+            if (myCar.powerups.length < 6) {
+                Command cmd = findPowerUps(myCar);
+                return cmd;
+            }
             if (checkLaneClearance(myCar)) {
                 Command ordersLane = findClearLane(myCar);
                 return ordersLane;
@@ -189,7 +189,7 @@ public class Bot {
         }
 
         // Sort lanePowerUps dari besar ke kecil
-        Collections.sort(lanePowerUps, Collections.reverseOrder());
+        Collections.sort(lanePowerUps);
         if (lanePowerUps.size() != 0) {
             closestPowerUps = lanePowerUps.get(0);
 
@@ -217,14 +217,11 @@ public class Bot {
         List<Object> rightLane = new ArrayList<Object>();
         List<Object> leftLane = new ArrayList<Object>();
         if (myPosLane == 1) {
-            //sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
         } else if (myPosLane == 4) {
             leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
-            //sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
         } else {
             leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
-            //sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
         }
 
@@ -348,15 +345,4 @@ public class Bot {
 
         return blocks;
     }
-
-    // private Boolean isEmptyInDistanceOpp(List<Object> blocks, Position player_pos, Position opp_pos) {
-    //     List<Lane[]> map = gameState.lanes;
-    //     int startBlock = map.get(0)[0].position.block;
-    //     for (int i = 0; i < opp_pos.block; i++) {
-    //         if (blocks.get(i) == Terrain.WALL) {
-    //             return false;
-    //         }
-    //     }
-    //     return true;
-    // }
 }
