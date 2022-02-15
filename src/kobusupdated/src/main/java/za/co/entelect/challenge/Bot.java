@@ -37,7 +37,7 @@ public class Bot {
 
     public Command run() {
         
-        int playerPosLane = myCar.position.lane;
+        //int playerPosLane = myCar.position.lane;
         int playerPosBlock = myCar.position.block;
         
         /*
@@ -48,7 +48,7 @@ public class Bot {
         int currentDamage = myCar.damage;
 
         //Fix first if too damaged to move
-        if(currentDamage >= 2) {
+        if (currentDamage >= 2) {
             return FIX;
         }
         
@@ -57,32 +57,21 @@ public class Bot {
             return ACCELERATE;
         }
         
-        if (myCar.state == State.HIT_EMP) {
-            Command ordersBlock = tryToBlock(myCar, opponentCar);
-            return ordersBlock;
-        }
-
         if (isEnemyBlocking(myCar, opponentCar)) {
             Command enemyBlocks = findClearLane(myCar);
             return enemyBlocks;
         }
         
         //Basic avoidance logic
-        if (checkLaneClearance(myCar, 1)) {
+        if ((checkLaneClearance(myCar, 1)) && (myCar.state != State.HIT_EMP)) {
             Command ordersLane = findClearLane(myCar);
             return ordersLane;
         } 
 
-        if ((hasAllPowerUps(myCar.powerups) == false) && (isEnemyFar(myCar, opponentCar) == false) && (playerPosBlock > 5) && (playerPosBlock < 1300)) {
-            Command ordersPower = findPowerUps(myCar);
-            return ordersPower;
+        if (myCar.state == State.HIT_EMP) {
+            Command ordersBlock = tryToBlock(myCar, opponentCar);
+            return ordersBlock;
         }
-        // Tries to find the nearest power ups
-        /*
-        if (hasAllPowerUps(myCar.powerups) == false) {
-            Command ordersPower = findPowerUps(myCar);
-            return ordersPower;
-        }*/
 
         // Aggresive algorithm
         // Increasing speed
@@ -107,6 +96,11 @@ public class Bot {
                 return BOOST;
             }
 
+            if ((hasAllPowerUps(myCar.powerups) == false) && (isEnemyFar(myCar, opponentCar) == false) && (playerPosBlock > 5) && (playerPosBlock < 1300)) {
+                Command ordersPower = findPowerUps(myCar);
+                return ordersPower;
+            }
+
             return ACCELERATE;
 
             
@@ -119,6 +113,11 @@ public class Bot {
 
             if (hasPowerUp(PowerUps.BOOST, myCar.powerups)) {
                 return BOOST;
+            }
+
+            if ((hasAllPowerUps(myCar.powerups) == false) && (isEnemyFar(myCar, opponentCar) == false) && (playerPosBlock > 5) && (playerPosBlock < 1300)) {
+                Command ordersPower = findPowerUps(myCar);
+                return ordersPower;
             }
 
             return ACCELERATE;
@@ -220,7 +219,7 @@ public class Bot {
            whichLane = 2 -> right lane */
         if (whichLane == 0) {
             List<Object> leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
-            List<Object>leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
+            List<Object> leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
             if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL)) || (checkCyberTruck(leftCT))) {
                 return true;
             } else {
@@ -339,29 +338,40 @@ public class Bot {
         int i, j;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
-        int firstLeftObstacle = 0;
-        int firstRightObstacle = 0;
+        int firstLeftObstacle = -1;
+        int firstRightObstacle = -1;
+        int firstSameObstacle = -1;
+        boolean leftWallObstacle = false;
+        boolean rightWallObstacle = false;
+        boolean sameWallObstacle = false;
         
-        List<Object> rightCT = new ArrayList<Object>();
-        List<Object> leftCT = new ArrayList<Object>();
+        List<Object> sameLane = new ArrayList<Object>();
         List<Object> rightLane = new ArrayList<Object>();
         List<Object> leftLane = new ArrayList<Object>();
-
+        List<Object> sameCT = new ArrayList<Object>();
+        List<Object> rightCT = new ArrayList<Object>();
+        List<Object> leftCT = new ArrayList<Object>();
         if (myPosLane == 1) {
+            sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
+            sameCT = getCTinLaneBased(myPosLane, myPosBlock, 1);
             rightCT = getCTinLaneBased(myPosLane, myPosBlock, 2);
         } else if (myPosLane == 4) {
             leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
+            sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
+            sameCT = getCTinLaneBased(myPosLane, myPosBlock, 1);
         } else {
             leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
-            leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
-            rightCT = getCTinLaneBased(myPosLane, myPosBlock, 2);
+            sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
+            leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
+            sameCT = getCTinLaneBased(myPosLane, myPosBlock, 1);
+            rightCT = getCTinLaneBased(myPosLane, myPosBlock, 2);
         }
 
         if (myPosLane == 1) {
-            if ((rightLane.contains(Terrain.WALL)) || (rightLane.contains(Terrain.MUD)) || (rightLane.contains(Terrain.OIL_SPILL)) || checkCyberTruck(rightCT)) {
+            if ((rightLane.contains(Terrain.WALL)) || (rightLane.contains(Terrain.MUD)) || (rightLane.contains(Terrain.OIL_SPILL)) || (checkCyberTruck(rightCT))) {
                 if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (myCar.speed != 0)) {
                     return LIZARD;
                 } else {
@@ -375,7 +385,7 @@ public class Bot {
             }
             return TURN_RIGHT;
         } else if (myPosLane == 4) {
-            if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL)) || checkCyberTruck(leftCT)) {
+            if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL)) || (checkCyberTruck(leftCT))) {
                 if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (myCar.speed != 0)){
                     return LIZARD;
                 } else {
@@ -389,40 +399,90 @@ public class Bot {
             }
             return TURN_LEFT;
         } else {
-            for (i = 0; i < leftLane.size(); i++) {
-                if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL) || checkCyberTruck(leftCT)) {
-                    firstLeftObstacle = i;
-                    break;
+            for (i = 5; i < leftLane.size(); i++) {
+                if (checkLaneClearance(myCar, 0)) {
+                    if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL) || (checkCyberTruck(leftCT))) {
+                        if (leftLane.get(i) == Terrain.WALL) {
+                            leftWallObstacle = true;
+                        }
+                        firstLeftObstacle = i;
+                        break;
+                    }
+                } else {
+                    firstLeftObstacle = -1;
                 }
             }
 
-            for (i = 0;i < rightLane.size(); i++) {
-                if ((rightLane.get(i) == Terrain.WALL) || (rightLane.get(i) == Terrain.MUD) || (rightLane.get(i) == Terrain.OIL_SPILL) || checkCyberTruck(rightCT)) {
-                    firstRightObstacle = i;
-                    break;
-                }
+            for (i = 5;i < rightLane.size(); i++) {
+                if (checkLaneClearance(myCar, 2)) {
+                    if ((rightLane.get(i) == Terrain.WALL) || (rightLane.get(i) == Terrain.MUD) || (rightLane.get(i) == Terrain.OIL_SPILL) || (checkCyberTruck(rightCT))) {
+                        if (rightLane.get(i) == Terrain.WALL) {
+                            rightWallObstacle = true;
+                        }
+                        firstRightObstacle = i;
+                        break;
+                    }
+                } else {
+                    firstRightObstacle = -1;
+                }                
             }
 
-            if ((firstLeftObstacle == 0) && (firstRightObstacle != 0)) {
+            for (i = 5;i < sameLane.size(); i++) {
+                if (checkLaneClearance(myCar, 1)) {
+                    if ((sameLane.get(i) == Terrain.WALL) || (sameLane.get(i) == Terrain.MUD) || (sameLane.get(i) == Terrain.OIL_SPILL) || checkCyberTruck(sameCT)) {
+                        if (sameLane.get(i) == Terrain.WALL) {
+                            sameWallObstacle = true;
+                        }
+                        firstSameObstacle = i;
+                        break;
+                    }
+                } else {
+                    firstSameObstacle = -1;
+                }                
+            }
+            
+            /* STILL BROKEN */
+            // If the obstacle on the same lane is further than the obstacles on the left and right, then accelerate
+            if ((firstSameObstacle > firstLeftObstacle) && (firstSameObstacle > firstRightObstacle) && (firstLeftObstacle != -1) && (firstRightObstacle != -1)) {
+                return ACCELERATE;
+            // If there's nothing on the left lane but there's something on the right, turn left                
+            } else if ((firstLeftObstacle == -1) && (firstRightObstacle > -1)) {
                 return TURN_LEFT;
-            } else if ((firstLeftObstacle != 0) && (firstRightObstacle == 0)) {
+            // If there's nothing on the right lane but there's something on the left, turn right 
+            } else if ((firstRightObstacle == -1) && (firstLeftObstacle > -1)) {
                 return TURN_RIGHT;
-            } else if (firstLeftObstacle < firstRightObstacle) {
-                return TURN_RIGHT;
-            } else if (firstLeftObstacle > firstRightObstacle) {
-                return TURN_LEFT;
-            } else if ((firstLeftObstacle == 0) && (firstRightObstacle == 0)) {
+            // If there are no obstacles on the left and right, use random functions to evade
+            } else if ((firstLeftObstacle == -1) && (firstRightObstacle == -1)) {
                 j = random.nextInt(2);
                 if (j == 1) {
                     return TURN_LEFT;
                 } else if (j == 2) {
                     return TURN_RIGHT;
                 }
+            // If an obstacle on the left is closer than the one on the right, turn right
+            } else if ((firstLeftObstacle < firstRightObstacle) && (firstLeftObstacle != -1)) {
+                return TURN_RIGHT;
+            // If an obstacle on the right is closer than the one on the left, turn left
+            } else if ((firstLeftObstacle > firstRightObstacle) && (firstRightObstacle != -1)) {
+                return TURN_LEFT;
+            
+            // If both obstacles on the left and right are in the same index, either use lizard or crash into it
             } else if (firstLeftObstacle == firstRightObstacle) {
                 if (hasPowerUp(PowerUps.LIZARD, myCar.powerups)) {
                     return LIZARD;
                 } else {
-                    return ACCELERATE;
+                    // Check for walls (much faster to hit oils or muds rather than walls)
+                    if (!sameWallObstacle) {
+                        return ACCELERATE;
+                    } else {
+                        if (leftWallObstacle) {
+                            return TURN_RIGHT;
+                        } else if (rightWallObstacle) {
+                            return TURN_LEFT;
+                        }
+                        return ACCELERATE;
+                    }
+                    
                 }
             }
         }
@@ -451,15 +511,15 @@ public class Bot {
         int myPosLane = myCar.position.lane;
         int opponentPosLane = opponentCar.position.lane;
         
-        // If the enemy is directly on the right
+        // If the enemy is directly on the left or right
         if ((myPosLane == 1) || (myPosLane == 4)) {
             if (opponentPosLane == myPosLane) {
                 return ACCELERATE;
-            } else if (myPosLane == 1) {
+            } else if ((myPosLane == 1) && (opponentPosLane == 2)) {
                 if (checkLaneClearance(myCar, 2) == false) {
                     return TURN_RIGHT;
                 }
-            } else if (myPosLane == 4) {
+            } else if ((myPosLane == 4) && (opponentPosLane == 3)) {
                 if (checkLaneClearance(myCar, 0) == false) {
                     return TURN_LEFT;
                 }
