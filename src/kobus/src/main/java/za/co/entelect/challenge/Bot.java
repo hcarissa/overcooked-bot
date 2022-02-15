@@ -73,24 +73,27 @@ public class Bot {
             if (hasPowerUp(PowerUps.BOOST, myCar.powerups)) {
                 return BOOST;
             }
-        }
-            
+        } 
 
         // Tries to find the nearest power ups
-        /*
-        if (myCar.powerups.length < 6) {
+        
+        if (hasAllPowerUps(myCar.powerups) == false) {
             Command ordersPower = findPowerUps(myCar);
             return ordersPower;
-        } */
-        
-        // Tweet usage
+        }
+
         // Aggresive algorithm
-        if (isPlayerinFront(myCar, opponentCar)) {
+        // Tweet usage
+        if (hasPowerUp(PowerUps.TWEET, myCar.powerups)) {
             Command tweetUsage = useTweet(myCar, opponentCar);
             return tweetUsage;
         }
-        
 
+        // Emp usage
+        if ((isPlayerinFront(myCar, opponentCar) == false) && (hasPowerUp(PowerUps.EMP, myCar.powerups))) {
+            Command empUsage = useEMP(myCar, opponentCar);
+            return empUsage;
+        }
         
         //Accelerate first if going to slow
         if(myCar.speed <= 3) {
@@ -149,6 +152,36 @@ public class Bot {
         }
     }
 
+    private boolean hasAllPowerUps(PowerUps[] available) {
+        int boost = 0;
+        int emp = 0;
+        int lizard = 0;
+        int oil = 0;
+        int tweet = 0;
+        for (PowerUps powerUp: available) {
+            if (powerUp.equals(PowerUps.BOOST)) {
+                boost++;
+            }
+            if (powerUp.equals(PowerUps.EMP)) {
+                emp++;
+            }
+            if (powerUp.equals(PowerUps.LIZARD)) {
+                lizard++;
+            }
+            if (powerUp.equals(PowerUps.OIL)) {
+                oil++;
+            }
+            if (powerUp.equals(PowerUps.TWEET)) {
+                tweet++;
+            }
+        }
+        if ((boost > 0) && (emp > 0) && (lizard > 0) && (oil > 0) && (tweet > 0)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /*
     private boolean checkPowerUpsAhead(Car myCar, GameState gameState) {
         int myPosLane = myCar.position.lane;
@@ -190,6 +223,7 @@ public class Bot {
         int i;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
+        int currentSpeed = myCar.speed;
 
         int leftLanePowerUps = 0;
         int sameLanePowerUps = 0;
@@ -245,7 +279,7 @@ public class Bot {
         }
 
         // Sort lanePowerUps dari besar ke kecil
-        Collections.sort(lanePowerUps, Collections.reverseOrder());
+        Collections.sort(lanePowerUps);
         if (lanePowerUps.size() != 0) {
             closestPowerUps = lanePowerUps.get(0);
 
@@ -266,26 +300,38 @@ public class Bot {
         int i, j;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
+        int mySpeed = myCar.speed;
         int firstLeftObstacle = 0;
         int firstRightObstacle = 0;
+        int firstSameObstacle = 0;
         
-        //List<Object> sameLane = new ArrayList<Object>();
+        List<Object> sameLane = new ArrayList<Object>();
         List<Object> rightLane = new ArrayList<Object>();
         List<Object> leftLane = new ArrayList<Object>();
+        List<Object> sameCT = new ArrayList<Object>();
+        List<Object> rightCT = new ArrayList<Object>();
+        List<Object> leftCT = new ArrayList<Object>();
         if (myPosLane == 1) {
-            //sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
+            sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
+            sameCT = getCTinLaneBased(myPosLane, myPosBlock, 1);
+            rightCT = getCTinLaneBased(myPosLane, myPosBlock, 2);
         } else if (myPosLane == 4) {
             leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
-            //sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
+            sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
+            leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
+            sameCT = getCTinLaneBased(myPosLane, myPosBlock, 1);
         } else {
             leftLane = getInfoinLaneBased(myPosLane, myPosBlock, 0);
-            //sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
+            sameLane = getInfoinLaneBased(myPosLane, myPosBlock, 1);
             rightLane = getInfoinLaneBased(myPosLane, myPosBlock, 2);
+            leftCT = getCTinLaneBased(myPosLane, myPosBlock, 0);
+            sameCT = getCTinLaneBased(myPosLane, myPosBlock, 1);
+            rightCT = getCTinLaneBased(myPosLane, myPosBlock, 2);
         }
 
         if (myPosLane == 1) {
-            if ((rightLane.contains(Terrain.WALL)) || (rightLane.contains(Terrain.MUD)) || (rightLane.contains(Terrain.OIL_SPILL))) {
+            if ((rightLane.contains(Terrain.WALL)) || (rightLane.contains(Terrain.MUD)) || (rightLane.contains(Terrain.OIL_SPILL)) || (checkCyberTruck(rightCT))) {
                 if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (myCar.speed != 0)) {
                     return LIZARD;
                 } else {
@@ -299,7 +345,7 @@ public class Bot {
             }
             return TURN_RIGHT;
         } else if (myPosLane == 4) {
-            if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL))) {
+            if ((leftLane.contains(Terrain.WALL)) || (leftLane.contains(Terrain.MUD)) || (leftLane.contains(Terrain.OIL_SPILL)) || (checkCyberTruck(leftCT))) {
                 if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (myCar.speed != 0)){
                     return LIZARD;
                 } else {
@@ -314,20 +360,29 @@ public class Bot {
             return TURN_LEFT;
         } else {
             for (i = 0; i < leftLane.size(); i++) {
-                if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL)) {
+                if ((leftLane.get(i) == Terrain.WALL) || (leftLane.get(i) == Terrain.MUD) || (leftLane.get(i) == Terrain.OIL_SPILL) || (checkCyberTruck(leftCT))) {
                     firstLeftObstacle = i;
                     break;
                 }
             }
 
             for (i = 0;i < rightLane.size(); i++) {
-                if ((rightLane.get(i) == Terrain.WALL) || (rightLane.get(i) == Terrain.MUD) || (rightLane.get(i) == Terrain.OIL_SPILL)) {
+                if ((rightLane.get(i) == Terrain.WALL) || (rightLane.get(i) == Terrain.MUD) || (rightLane.get(i) == Terrain.OIL_SPILL) || (checkCyberTruck(rightCT))) {
                     firstRightObstacle = i;
                     break;
                 }
             }
 
-            if ((firstLeftObstacle == 0) || (firstRightObstacle != 0)) {
+            for (i = 0;i < sameLane.size(); i++) {
+                if ((sameLane.get(i) == Terrain.WALL) || (sameLane.get(i) == Terrain.MUD) || (sameLane.get(i) == Terrain.OIL_SPILL) || checkCyberTruck(sameCT)) {
+                    firstSameObstacle = i;
+                    break;
+                }
+            }
+            
+            if ((firstSameObstacle > firstLeftObstacle) && (firstSameObstacle > firstRightObstacle) && (firstLeftObstacle != 0) && (firstRightObstacle != 0) && (mySpeed < maxSpeed)) {
+                return ACCELERATE;
+            } else if ((firstLeftObstacle == 0) || (firstRightObstacle != 0)) {
                 return TURN_LEFT;
             } else if ((firstLeftObstacle != 0) || (firstRightObstacle == 0)) {
                 return TURN_RIGHT;
@@ -358,13 +413,68 @@ public class Bot {
         int opponentPosLane = opponentCar.position.lane;
         int opponentPosBlock = opponentCar.position.block;
         int opponentSpeed = opponentCar.speed;
-        if (hasPowerUp(PowerUps.TWEET, myCar.powerups)) {
-            return new TweetCommand(opponentPosLane, opponentPosBlock + opponentSpeed + 1);
-        } else {
-            return ACCELERATE;
-        }
+        return new TweetCommand(opponentPosLane, opponentPosBlock + opponentSpeed + 1);
     } 
 
+    private Command useEMP(Car myCar, Car opponentCar) {
+        int myPosLane = myCar.position.lane;
+        int opponentPosLane = opponentCar.position.lane;
+        int laneDiff = myPosLane - opponentPosLane;
+        // If opponentPosLane > myPosLane -> means player have to turn right to get closer
+        if (opponentPosLane > myPosLane) {
+            return TURN_RIGHT;
+        // If opponentPosLane < myPosLane -> means player have to turn left to get closer
+        } else if (opponentPosLane < myPosLane) {
+            return TURN_LEFT;
+        } else if ((laneDiff == 2) && (laneDiff == -2)) {
+            return EMP;
+        }
+        return EMP;
+    }
+
+    private Boolean checkCyberTruck(List<Object> blocks) {
+        for (int i = 0; i < blocks.size(); i++) {
+            if (blocks.get(i) == "true") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<Object> getCTinLaneBased(int lane, int block, int whichLane) {
+        // Fungsi ini cuman bakal ambil lane yang diminta
+        List<Lane[]> map = gameState.lanes; // lanes is the WORLD MAP
+        List<Object> blocks = new ArrayList<>();
+        int startBlock = map.get(0)[0].position.block;
+
+        /*
+        whichLane = 0 -> left lane
+        whichLane = 1 -> current lane
+        whichLane = 2 -> right lane */
+        Lane[] laneList = {};
+        if (whichLane == 0) {   
+            laneList = map.get(lane - 2);
+        } else if (whichLane == 1) {
+            laneList = map.get(lane - 1);
+        } else if (whichLane == 2) {
+            laneList = map.get(lane);
+        }
+
+        for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
+            if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
+                break;
+            }
+            Boolean var = laneList[i].isOccupiedByCyberTruck;
+            if (var) {
+                blocks.add("true");
+            } else {
+                blocks.add("false");
+            }
+            
+        }
+
+        return blocks;
+    }
     /**
      * Returns map of blocks and the objects in the for the current lanes, returns
      * the amount of blocks that can be traversed at max speed.

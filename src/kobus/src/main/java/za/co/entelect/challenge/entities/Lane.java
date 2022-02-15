@@ -12,4 +12,7 @@ public class Lane {
 
     @SerializedName("occupiedByPlayerId")
     public int occupiedByPlayerId;
+
+    @SerializedName("isoccupiedByCyberTruck")
+    public boolean isOccupiedByCyberTruck;
 }
