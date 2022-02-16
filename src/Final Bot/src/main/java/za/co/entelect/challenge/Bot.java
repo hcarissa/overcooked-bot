@@ -10,15 +10,13 @@ import java.util.*;
 import static java.lang.Math.max;
 
 public class Bot {
-
-    private static final int maxSpeed = 9;
-
     private Random random;
     private GameState gameState;
     private Car myCar;
     private Car opponentCar;
 
     private final static Command ACCELERATE = new AccelerateCommand();
+    private final static Command DECELERATE = new DecelerateCommand();
     private final static Command LIZARD = new LizardCommand();
     private final static Command OIL = new OilCommand();
     private final static Command BOOST = new BoostCommand();
@@ -35,16 +33,10 @@ public class Bot {
     }
 
     public Command run() {
-        
-        //int playerPosLane = myCar.position.lane;
-        int playerPosBlock = myCar.position.block;
-        
-        /*
-        int opponentPosLane = myCar.position.lane;
-        int opponentPosBlock = myCar.position.block; */
-
-        // Declaring player car status
+        // Declare status
         int currentDamage = myCar.damage;
+        int mySpeed = myCar.speed;
+        int opponentSpeed = opponentCar.speed;
 
         //Fix first if too damaged to move
         if (currentDamage >= 2) {
@@ -58,6 +50,9 @@ public class Bot {
         
         // If the enemy car blocks player car, find another route
         if (isEnemyBlocking(myCar, opponentCar)) {
+            if ((hasPowerUp(PowerUps.LIZARD, myCar.powerups)) && (mySpeed > opponentSpeed)) {
+                return LIZARD;
+            }
             Command enemyBlocks = tryToOvertake(myCar);
             return enemyBlocks;
         }
@@ -71,34 +66,35 @@ public class Bot {
         if (myCar.state == State.HIT_EMP) {
             Command ordersBlock = tryToBlock(myCar, opponentCar);
             return ordersBlock;
+        } 
+
+        // Boost usage
+        if ((hasPowerUp(PowerUps.BOOST, myCar.powerups)) && (currentDamage == 0) && (myCar.boostCounter == 0)) {
+            return BOOST;
+        }
+        
+        // Find more powerups
+        if ((hasAllPowerUps(myCar.powerups) == false) && (isEnemyFar(myCar, opponentCar) == false)) {
+            Command ordersPower = findPowerUps(myCar);
+            return ordersPower;
         }
 
         // Aggresive algorithm
-        // Tweet usage
-        if (hasPowerUp(PowerUps.TWEET, myCar.powerups)) {
-            Command tweetUsage = useTweet(myCar, opponentCar);
-            return tweetUsage;
-        }
 
         if (isPlayerinFront(myCar, opponentCar) == false) {
             // Emp usage
-            if (hasPowerUp(PowerUps.EMP, myCar.powerups)) {
-                return EMP;
+            if ((hasPowerUp(PowerUps.EMP, myCar.powerups))) {
+                if (checkEMPUses(myCar, opponentCar)) {
+                    return EMP;
+                }
             }
 
-            // Boost usage
-            if (hasPowerUp(PowerUps.BOOST, myCar.powerups)) {
-                return BOOST;
-            }
-
-            // Find more powerups
-            if ((hasAllPowerUps(myCar.powerups) == false) && (isEnemyFar(myCar, opponentCar) == false) && (playerPosBlock > 5) && (playerPosBlock < 1300)) {
-                Command ordersPower = findPowerUps(myCar);
-                return ordersPower;
+            if (hasPowerUp(PowerUps.TWEET, myCar.powerups)) {
+                Command tweetUsage = useTweet(myCar, opponentCar);
+                return tweetUsage;
             }
 
             return ACCELERATE;
-
             
         } else if (isPlayerinFront(myCar, opponentCar)) {
             // Oil usage
@@ -107,21 +103,16 @@ public class Bot {
                 return oilUsage;
             }
 
-            if (hasPowerUp(PowerUps.BOOST, myCar.powerups)) {
-                return BOOST;
-            }
-
-            if ((hasAllPowerUps(myCar.powerups) == false) && (isEnemyFar(myCar, opponentCar) == false) && (playerPosBlock > 5) && (playerPosBlock < 1300)) {
-                Command ordersPower = findPowerUps(myCar);
-                return ordersPower;
+            if (hasPowerUp(PowerUps.TWEET, myCar.powerups)) {
+                Command tweetUsage = useTweet(myCar, opponentCar);
+                return tweetUsage;
             }
 
             return ACCELERATE;
 
         }
-        
-        return ACCELERATE;
 
+        return ACCELERATE;
     }
 
     // Function to check whether my car has the powerups required or not
@@ -169,6 +160,7 @@ public class Bot {
     private boolean isEnemyFar(Car myCar, Car opponentCar) {
         int myPosBlock = myCar.position.block;
         int opponentPosBlock = opponentCar.position.block;
+
         if (isPlayerinFront(myCar, opponentCar) == false) {
             if (opponentPosBlock - myPosBlock > 20) {
                 return true;
@@ -187,6 +179,7 @@ public class Bot {
         int myPosBlock = myCar.position.block;
         int opponentPosLane = opponentCar.position.lane;
         int opponentPosBlock = opponentCar.position.block;
+
         if (myPosLane == opponentPosLane) {
             if (opponentPosBlock - myPosBlock == 1) {
                 return true;
@@ -200,6 +193,7 @@ public class Bot {
         int myPosBlock = myCar.position.block;
         int opponentPosBlock = opponentCar.position.block;
         int diff = myPosBlock - opponentPosBlock;
+
         if (diff > 0) {
             return true;
         } else {
@@ -327,6 +321,7 @@ public class Bot {
                 }
             }
         }
+            
         
         return ACCELERATE;
     }
@@ -336,6 +331,7 @@ public class Bot {
         int i, j;
         int myPosLane = myCar.position.lane;
         int myPosBlock = myCar.position.block;
+        int mySpeed = myCar.speed;
         int firstLeftObstacle = -1;
         int firstRightObstacle = -1;
         int firstSameObstacle = -1;
@@ -399,7 +395,7 @@ public class Bot {
             }
             return TURN_LEFT;
         } else {
-            for (i = 5; i < leftLane.size(); i++) {
+            for (i = 0; i < leftLane.size(); i++) {
                 // Check lane clearance on the left, if there are obstacles, continue, but if there are none, leftObstacleExist is false
                 if (checkLaneClearance(myCar, 0)) {
                     leftObstacleExist = true;
@@ -416,7 +412,7 @@ public class Bot {
                 }
             }
 
-            for (i = 5;i < rightLane.size(); i++) {
+            for (i = 0;i < rightLane.size(); i++) {
                 // Check lane clearance on the right, if there are obstacles, continue, but if there are none, rightObstacleExist is false
                 if (checkLaneClearance(myCar, 2)) {
                     rightObstacleExist = true;
@@ -433,7 +429,7 @@ public class Bot {
                 }                
             }
 
-            for (i = 5;i < sameLane.size(); i++) {
+            for (i = 0;i < sameLane.size(); i++) {
                 if (checkLaneClearance(myCar, 1)) {
                     if ((sameLane.get(i) == Terrain.WALL) || (sameLane.get(i) == Terrain.MUD) || (sameLane.get(i) == Terrain.OIL_SPILL) || checkCyberTruck(sameCT)) {
                         if (sameLane.get(i) == Terrain.WALL) {
@@ -446,7 +442,13 @@ public class Bot {
             }
             
             // If the obstacle on the same lane is further than the obstacles on the left and right, then accelerate
-            if ((leftObstacleExist) && (rightObstacleExist) && (firstSameObstacle > firstLeftObstacle) && (firstSameObstacle > firstRightObstacle) ) {
+            if ((leftObstacleExist) && (rightObstacleExist) && (firstSameObstacle > firstLeftObstacle) && (firstSameObstacle > firstRightObstacle)) {
+                if (mySpeed + 5 < firstSameObstacle) {
+                    return ACCELERATE;
+                }
+                if (speedBelow(mySpeed) + 5 < firstSameObstacle) {
+                    return DECELERATE;
+                }
                 return ACCELERATE;
             // If there's nothing on the left lane but there's something on the right, turn left                
             } else if ((!leftObstacleExist) && (rightObstacleExist)) {
@@ -494,6 +496,7 @@ public class Bot {
                         }
                         return ACCELERATE;
                     }
+                    
                 }
             }
         }
@@ -504,21 +507,21 @@ public class Bot {
         int myPosLane = myCar.position.lane;
         // If myPosLane = 1, then only way to evade is turning right
         if (myPosLane == 1) {
-            if (checkLaneClearance(myCar, 2)) {
+            if (!checkLaneClearance(myCar, 2)) {
                 return TURN_RIGHT;
             }
         // If myPosLane = 4, then only way to evade is turning left
         } else if (myPosLane == 4) {
-            if (checkLaneClearance(myCar, 0)) {
+            if (!checkLaneClearance(myCar, 0)) {
                 return TURN_LEFT;
             }
         // If car position is on lane 2 or 3, then check for the best possibilities
         } else {
             // Check the left lane for clearance, if clear then go left
-            if (checkLaneClearance(myCar, 0)) {
+            if (!checkLaneClearance(myCar, 0)) {
                 return TURN_LEFT;
             // Check the right lane for clearance, if clear then go right
-            } else if (checkLaneClearance(myCar, 2)) {
+            } else if (!checkLaneClearance(myCar, 2)) {
                 return TURN_RIGHT;
             }
         }
@@ -530,7 +533,7 @@ public class Bot {
         int opponentPosLane = opponentCar.position.lane;
         int opponentPosBlock = opponentCar.position.block;
         int opponentSpeed = opponentCar.speed;
-        return new TweetCommand(opponentPosLane, opponentPosBlock + opponentSpeed + 1);
+        return new TweetCommand(opponentPosLane, opponentPosBlock + opponentSpeed + 2);
     } 
 
     // Function to check whether the player and the enemy are on the same lane, if they are, use oil powerup
@@ -574,8 +577,39 @@ public class Bot {
         return ACCELERATE;
     }
 
+    // Function to check the speed state below the current ones
+    private int speedBelow(int currentSpeed) {
+        if (currentSpeed == 15) {
+            return 9;
+        } else if (currentSpeed == 9) {
+            return 8;
+        } else if (currentSpeed == 8) {
+            return 6;
+        } else if (currentSpeed == 6) {
+            return 5;
+        } else if (currentSpeed == 5) {
+            return 3;
+        } else if (currentSpeed == 3) {
+            return 0;
+        }
+        return 0;
+    }
+
+    // Function to check whether an emp use would make an effect on the enemy
+    private boolean checkEMPUses(Car myCar, Car opponentCar) {
+        int myPosLane = myCar.position.lane;
+        int opponentPosLane = opponentCar.position.lane;
+        int diff = myPosLane - opponentPosLane;
+
+        // If the enemy is on the player left or right lane, not the furthest lane
+        if ((diff == -1) || (diff == 1)) {
+            return true;
+        }
+        return false;
+    }
+
     // Function to scan through cybertruck list of blocks and return if there's a cybertruck
-    private Boolean checkCyberTruck(List<Object> blocks) {
+    private boolean checkCyberTruck(List<Object> blocks) {
         for (int i = 0; i < blocks.size(); i++) {
             if (blocks.get(i) == "true") {
                 return true;
@@ -603,7 +637,7 @@ public class Bot {
             laneList = map.get(lane);
         }
 
-        for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
+        for (int i = max(block - startBlock, 0); i <= 20; i++) {
             if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
                 break;
             }
@@ -640,7 +674,7 @@ public class Bot {
             laneList = map.get(lane);
         }
 
-        for (int i = max(block - startBlock, 0); i <= block - startBlock + Bot.maxSpeed; i++) {
+        for (int i = max(block - startBlock, 0); i <= 20; i++) {
             if (laneList[i] == null || laneList[i].terrain == Terrain.FINISH) {
                 break;
             }
