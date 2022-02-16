@@ -1,7 +1,7 @@
 {
-	"author": "Kristo Abdi",
-	"email": "kristabdixx@gmail.com",
-	"nickName": "Kristo",
+	"author": "Kristo Abdi Wiguna, Yakobus Iryanto Prasethio, Hilda Carissa Widelia",
+	"email": "Overcookede@example.com",
+	"nickName": "Overcooked Bot",
 	"botLocation": "/target",
 	"botFileName": "java-starter-bot-jar-with-dependencies.jar",
 	"botLanguage": "java"

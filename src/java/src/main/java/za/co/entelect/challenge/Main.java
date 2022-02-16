@@ -15,7 +15,8 @@ public class Main {
     private static final String STATE_FILE_NAME = "state.json";
 
     /**
-     * Read the current state, feed it to the bot, get the output and print it to stdout
+     * Read the current state, feed it to the bot, get the output and print it to
+     * stdout
      *
      * @param args the args
      **/
@@ -25,7 +26,7 @@ public class Main {
         Gson gson = new Gson();
         Random random = new Random(System.nanoTime());
 
-        while(true) {
+        while (true) {
             try {
                 int roundNumber = sc.nextInt();
 
